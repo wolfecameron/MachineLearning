@@ -28,7 +28,7 @@ def getDataSet():
 	for x in range(1,DATA_SET_SIZE):
 		# appends value into x and random correponding value into y
 		x_values.append(x)
-		y_values.append(x + x*random())
+		y_values.append(x + x*(random() - .5))
 
 # hypothesis for linear regression: h(x) = theta0 + theta1*x
 # function used to calculate the error for a given hypothesis 
