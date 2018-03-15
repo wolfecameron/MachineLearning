@@ -1,3 +1,8 @@
+# this file implements a simple linear regression algorithm 
+# utilizes gradient descent and two features to yield the optimal linear 
+# function for a given randomly selected set of data
+# uses matplotlib plotting library to visualize data set and function that is fitted to it
+
 import matplotlib
 matplotlib.use("TkAgg")
 import matplotlib.pyplot as plt
