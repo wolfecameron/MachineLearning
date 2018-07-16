@@ -7,14 +7,15 @@ In this exercise - I worked with the sklearn breast cancer dataset.
 """
 
 import numpy as np
+import pandas as pd
 from sklearn.datasets import load_breast_cancer 
 from sklearn.ensemble import RandomForestRegressor
 from sklearn.model_selection import train_test_split
 import matplotlib.pyplot as plt
+import seaborn as sns
 
 
-# load in data set in form of (data, target)
-data, classif = load_breast_cancer(return_X_y=True)
+
 
 
 def run_default_rf(data, target, verbose=True):
@@ -72,7 +73,7 @@ def visualize_feature_importances(rf):
 	plt.show()
 
 
-def filter_features(rf, data, importance_threshold):
+def filter_features(data, bad_indices):
 	"""Uses the feature importances of the baseline
 	random forest to eliminate featues from the data 
 	that are not useful to the algorithm
@@ -85,17 +86,27 @@ def filter_features(rf, data, importance_threshold):
 	data -- the classification data
 	importance_threshold -- any importance below this threshold
 	will be filtered from the data
-	"""
-	
-	importances = rf.feature_importances_
-	
-	# get list of indices below the importance threshold
-	bad_indices = np.where(importances <= importance_threshold)	
+	"""	
 
 	# eliminate above column indices from the data and return new set
 	filtered_data = np.delete(data, bad_indices, axis=1)
 	return filtered_data
-	
+
+
+def check_null(df):
+	"""This method is used to check all columns of the data frame
+	for any null values and check the data types of each of the columns
+	in the data frame
+	"""
+
+	null_info = df[df.isnull().any(axis=1)].count()
+	total_nulls = null_info.sum()
+	print("{0} null values were found.".format(str(total_nulls)))
+	if(total_nulls > 0):	
+		print(null_info)
+	print("\n\nShowing all data types:\n\n")
+	print(df.dtypes)
+
 
 def test_importance_thresholds(imp_thresh_list, rf, data, display=True):
 	"""This method tests a list of importance thresholds and determines
@@ -132,17 +143,101 @@ def test_importance_thresholds(imp_thresh_list, rf, data, display=True):
 	best_ind = accuracies.index(max(accuracies))
 	return imp_thresh_list[best_ind]
 
+
+def vis_correlation_map(df):
+	"""This method uses a seaborn heatmap to visualize the correlation
+	between features in the dataset
+	
+	This plot shows that features 2, 3, 20, 22, 23 correlate strongly
+	with feature 0 and 12 and 13 with feature 10. These features should
+	be removed because they present no new information.	
+	"""
+
+	fig, ax = plt.subplots()
+	corr = df.corr()
+	sns.heatmap(corr, annot=True, cmap='hot')
+	plt.show()			
+
 			
-			
+def vis_output_distribution(df):
+	"""This method creates a bar chart visualization for the
+	number of observations classified as either a 1 or a 0 to
+	see if the data set is balanced or not.
+	
+	From this it can be seen that there are a greater amount of 1s
+	than 0s.
+	"""
+
+	classes = df.loc[:, "classification"]
+	classes.value_counts().plot(kind='bar')
+	plt.show()
+
+
+def vis_feature_corr(data, ind_1, ind_2, class_):
+	"""Function for visualizing the correlations of two
+	features in a 2D plane - colors the plot with the
+	classification of the data points.
+
+	Parameters:
+	ind_1/2 -- the indices of the features in data frame
+	that are being plotted
+	"""
+	
+	df = pd.DataFrame(data)
+	plt.scatter(df.iloc[:, ind_1], df.iloc[:, ind_2], c=class_)
+	plt.title("Showing Plot of Selected Features")
+	plt.xlabel("index {0}".format(ind_1))
+	plt.ylabel("index {0}".format(ind_2))
+	plt.show()
+	
+
+def vis_all_feat_corrs(data, class_):
+	"""This method uses the method above to visualize the
+	feature correlations of all features in the data set 
+	using the above method.
+	"""
+	
+	num_feat = data.shape[1]
+	for ind_1 in range(num_feat):
+		for ind_2 in range(num_feat):
+			print("Showing features {0} and {1} ...".format(
+				str(ind_1), str(ind_2)))
+			vis_feature_corr(data, ind_1, ind_2, class_)
+	
+
 
 if __name__ == "__main__":
 	"""Run all code within this main body"""
-	base_rf = run_default_rf(data, classif)[0]
-	visualize_feature_importances(base_rf)
-	IMPORTANCE_THRESH_LIST = [.0005, .001, .002, .005, .008, .1, .12, .15, .18, .2]
-	# find best threshold and use it to filter features in the data set	 
-	IMPORTANCE_THRESH = test_importance_thresholds([.001, .002, .005, .01, .015], base_rf, data)
-	filtered_data = filter_features(base_rf, data, IMPORTANCE_THRESH)
-	filtered_rf = run_default_rf(filtered_data, classif)[0]
-	visualize_feature_importances(filtered_rf)
 
+	# load in data set in form of (data, target)
+	data, classif = load_breast_cancer(return_X_y=True)
+	data_df = pd.DataFrame(data)
+	
+	# must check data for nulls and bad data types
+	check_null(data_df)
+
+	vis_correlation_map(data_df)
+	
+	# filter strongly correlated features - can see which ones in correlation map
+	data = filter_features(data, [2, 3, 20, 22, 23, 12, 13])
+	
+	vis_all_feat_corrs(data, classif)
+	'''
+	base_rf = run_default_rf(data, classif)[0]
+	#visualize_feature_importances(base_rf)
+	IMPORTANCE_THRESH_LIST = [.0005, .001, .002, .005, .008, .1, .12, .15, .18, .2]
+	
+	# find best threshold and use it to filter features in the data set	 
+	IMPORTANCE_THRESH = .008 #test_importance_thresholds(IMPORTANCE_THRESH_LIST, base_rf, data)
+	filtered_data = filter_features(base_rf, data, IMPORTANCE_THRESH)
+	
+	# create full data frame with filtered features
+	filtered_df = pd.DataFrame(filtered_data)
+	filtered_df.loc[:, "classification"] = pd.Series(classif)
+	vis_output_distribution(filtered_df)
+	
+
+	#filtered_rf = run_default_rf(filtered_data, classif)[0]
+	#visualize_feature_importances(filtered_rf)
+	#view_correlation_map(filtered_df)
+	'''
