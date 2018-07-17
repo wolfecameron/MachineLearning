@@ -203,6 +203,41 @@ def vis_all_feat_corrs(data, class_):
 			print("Showing features {0} and {1} ...".format(
 				str(ind_1), str(ind_2)))
 			vis_feature_corr(data, ind_1, ind_2, class_)
+
+	
+def vis_single_feat(data, class_, ind):
+	"""Function for visualizing a single feature with
+	a graph being created to show the classification of
+	the features based on the value of the feature as well
+	as a bar graph of the mean values of the features
+	"""
+	
+	# create graph of classification and feature values	
+	plt.figure(100) # display two plots on separate figures
+	df = pd.DataFrame(data)
+	feat_vals = df.iloc[:, ind]
+	plt.scatter(feat_vals, class_)
+	plt.title("Plot of Feature {0}".format(str(ind)))
+	plt.xlabel("Feature Value")
+	plt.ylabel("Classification")
+	
+	# create bar graph of mean feature values for each classification
+	plt.figure(200)
+	mean_df = pd.concat([df.iloc[:, ind], pd.Series(class_)], axis=1)
+	mean_df.columns = ["values", "classif"]	
+	mean_df.groupby("classif", as_index=False)["values"].mean().loc[:,"values"].plot(kind='bar')
+	
+	plt.show()
+
+
+def vis_all_feat(data, class_):
+	"""Method that utilizes the above method to visualize
+	all features in a data set by themselves iteratively
+	"""
+	
+	for col_ind in range(data.shape[1]):
+		print("Viewing Feature #{0}".format(str(col_ind)))
+		vis_single_feat(data, class_, col_ind)
 	
 
 
@@ -221,7 +256,7 @@ if __name__ == "__main__":
 	# filter strongly correlated features - can see which ones in correlation map
 	data = filter_features(data, [2, 3, 20, 22, 23, 12, 13])
 	
-	vis_all_feat_corrs(data, classif)
+	vis_all_feat(data, classif)
 	'''
 	base_rf = run_default_rf(data, classif)[0]
 	#visualize_feature_importances(base_rf)
