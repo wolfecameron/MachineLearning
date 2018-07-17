@@ -9,7 +9,7 @@ In this exercise - I worked with the sklearn breast cancer dataset.
 import numpy as np
 import pandas as pd
 from sklearn.datasets import load_breast_cancer 
-from sklearn.ensemble import RandomForestRegressor
+from sklearn.ensemble import RandomForestClassifier
 from sklearn.model_selection import train_test_split
 import matplotlib.pyplot as plt
 import seaborn as sns
@@ -30,16 +30,14 @@ def run_default_rf(data, target, verbose=True):
 	rf_results = []
 	for x in range(iterations):
 		# instantiate the Random Forest Classifier
-		rf = RandomForestRegressor()
+		rf = RandomForestClassifier(n_estimators = 25, oob_score=True, n_jobs=-1)
 	
 		# split the data set into training and testing data
 		x_train, x_test, y_train, y_test = train_test_split(data, target)
 
 		# fit the model to the data and find the baseline accuracy
 		rf.fit(x_train, y_train)
-		results = rf.predict(x_test)
-		accuracy = 100 - (np.sum(np.fabs(results - y_test))/y_test.shape[0])*100
-		accuracies.append(accuracy)
+		accuracies.append(rf.oob_score_)
 		rf_results.append(rf)
 	
 	# find the best random forest result to append
@@ -210,6 +208,10 @@ def vis_single_feat(data, class_, ind):
 	a graph being created to show the classification of
 	the features based on the value of the feature as well
 	as a bar graph of the mean values of the features
+
+	This plot allows you to decide if the feature should be used
+	or not - features with very similar plots for 1s and 0s do not
+	provide much useful information.
 	"""
 	
 	# create graph of classification and feature values	
@@ -223,6 +225,9 @@ def vis_single_feat(data, class_, ind):
 	
 	# create bar graph of mean feature values for each classification
 	plt.figure(200)
+	plt.title("Mean Values of Feature {0}".format(str(ind)))
+	plt.xlabel("Classification")
+	plt.ylabel("Mean Feature Value")
 	mean_df = pd.concat([df.iloc[:, ind], pd.Series(class_)], axis=1)
 	mean_df.columns = ["values", "classif"]	
 	mean_df.groupby("classif", as_index=False)["values"].mean().loc[:,"values"].plot(kind='bar')
@@ -256,7 +261,24 @@ if __name__ == "__main__":
 	# filter strongly correlated features - can see which ones in correlation map
 	data = filter_features(data, [2, 3, 20, 22, 23, 12, 13])
 	
-	vis_all_feat(data, classif)
+	#vis_all_feat(data, classif)
+	data = filter_features(data, [1, 2, 6, 7, 9, 10, 14, 15])
+	print(data.shape)
+	
+	informed_rf = run_default_rf(data, classif)[0]
+	print(informed_rf.feature_importances_)
+	
+	# take out features with a very low feature importance
+	ind = 0
+	low_importance = []
+	for x in informed_rf.feature_importances_:
+		if (x < .01):
+			low_importance.append(ind)
+		ind += 1
+
+	data = filter_features(data, low_importance)
+	vis_all_feat_corrs(data, classif)
+		
 	'''
 	base_rf = run_default_rf(data, classif)[0]
 	#visualize_feature_importances(base_rf)
