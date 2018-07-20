@@ -21,39 +21,27 @@ import seaborn as sns
 
 
 
-def run_default_rf(data, target, verbose=True):
+def run_default_rf(data, target, forest_size=25, verbose=True):
 	"""This method runs random forest with default parameters on 
 	the data set that is passed into it. The accuracy of the test
 	is displayed in the terminal and the random forest trained object
 	is returned to the user to be used for later examination and testing.
 	"""
 	
-	iterations = 15
-	accuracies = []
-	rf_results = []
-	for x in range(iterations):
-		# instantiate the Random Forest Classifier
-		rf = RandomForestClassifier(n_estimators = 25, oob_score=True, n_jobs=-1)
+	# instantiate the Random Forest Classifier
+	rf = RandomForestClassifier(n_estimators=forest_size, oob_score=True, n_jobs=-1)
 	
-		# split the data set into training and testing data
-		x_train, x_test, y_train, y_test = train_test_split(data, target)
+	# split the data set into training and testing data
+	x_train, x_test, y_train, y_test = train_test_split(data, target)
 
-		# fit the model to the data and find the baseline accuracy
-		rf.fit(x_train, y_train)
-		accuracies.append(rf.oob_score_)
-		rf_results.append(rf)
+	# fit the model to the data and find the baseline accuracy
+	rf.fit(x_train, y_train)
+	accuracy = rf.oob_score_
 	
-	# find the best random forest result to append
-	best_ind = accuracies.index(max(accuracies))
-	best_rf = rf_results[best_ind]
-	
-	# find average accuracy of all tests
-	overall_acc = np.mean(np.array(accuracies))
-
 	# print accuracy and return the fitted baseline model
 	if(verbose):
-		print("Accuracy: {0}%".format(str(overall_acc)))
-	return (best_rf, overall_acc)
+		print("Accuracy: {0}%".format(str(accuracy)))
+	return (rf, accuracy)
 
 def run_default_NB(data, target):
 	"""Method for running the naive bayes classifier on the breast cancer
@@ -316,3 +304,18 @@ if __name__ == "__main__":
 	
 	informed_rf = run_default_rf(data, classif)[0]
 	print(informed_rf.feature_importances_)
+	feat_np = np.array(informed_rf.feature_importances_, copy=True)
+	mean_imp = np.mean(feat_np)
+	bad_indices = []
+	for ind in range(len(informed_rf.feature_importances_)):
+		if(feat_np[ind] < mean_imp):
+			bad_indices.append(ind)
+	data = filter_features(data, bad_indices)
+	print(data.shape)
+	run_default_rf(data, classif)	
+	new_rf = run_default_rf(data, classif, forest_size=100)[0]
+	print(new_rf.feature_importances_)
+	feat_imp = np.array(new_rf.feature_importances_, copy=True)
+	bad_indices = np.argwhere(feat_imp < .015)
+	data = filter_features(data, bad_indices)
+	run_default_rf(data, classif, forest_size=100)	
