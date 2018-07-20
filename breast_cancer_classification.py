@@ -11,6 +11,9 @@ import pandas as pd
 from sklearn.datasets import load_breast_cancer 
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.model_selection import train_test_split
+from sklearn.naive_bayes import BernoulliNB
+from sklearn.model_selection import StratifiedKFold
+from sklearn.preprocessing import PolynomialFeatures
 import matplotlib.pyplot as plt
 import seaborn as sns
 
@@ -52,6 +55,35 @@ def run_default_rf(data, target, verbose=True):
 		print("Accuracy: {0}%".format(str(overall_acc)))
 	return (best_rf, overall_acc)
 
+def run_default_NB(data, target):
+	"""Method for running the naive bayes classifier on the breast cancer
+	dataset. The accuracy of the test is displayed in the terminal and
+	the NB object is returned for testing. The Bayes classifier is also
+	cross validated.
+	"""
+	
+	# define number of splits used in cross validation
+	N_SPLITS = 2
+
+	# instantiate the cross validator and split the data
+	cv = StratifiedKFold(n_splits=N_SPLITS)
+	total_error = 0.0
+	for train_index, test_index in cv.split(data, target):
+		x_train, x_test = data[train_index], data[test_index]
+		y_train, y_test = target[train_index], target[test_index]
+		
+		# train the model on the cross validation set
+		model = BernoulliNB()
+		model.fit(x_train, y_train)
+		result = model.predict(x_test)
+		error = np.sum(np.fabs(result - y_test))/y_test.shape[0]
+		total_error += error
+	
+	return (total_error/N_SPLITS)
+		
+	
+
+	
 
 def visualize_feature_importances(rf):
 	"""This function plots all feature importances within the data
@@ -243,6 +275,20 @@ def vis_all_feat(data, class_):
 	for col_ind in range(data.shape[1]):
 		print("Viewing Feature #{0}".format(str(col_ind)))
 		vis_single_feat(data, class_, col_ind)
+
+def gen_polynomial_feats(data, degree=2):
+	"""This method takes the existing data set and generates
+	extra polynomial and interaction features between all
+	existing features in the dataset - this creates a significant
+	number of extra features which are later filtered out based on
+	feature importance
+	"""
+	
+	# create polynomials and return dataset
+	pf = PolynomialFeatures(degree)
+	data = pf.fit_transform(data)
+	
+	return data
 	
 
 
@@ -255,7 +301,8 @@ if __name__ == "__main__":
 	
 	# must check data for nulls and bad data types
 	check_null(data_df)
-
+	
+	# view correlation of all the features in the dataset 
 	vis_correlation_map(data_df)
 	
 	# filter strongly correlated features - can see which ones in correlation map
@@ -265,36 +312,7 @@ if __name__ == "__main__":
 	data = filter_features(data, [1, 2, 6, 7, 9, 10, 14, 15])
 	print(data.shape)
 	
+	data = gen_polynomial_feats(data)
+	
 	informed_rf = run_default_rf(data, classif)[0]
 	print(informed_rf.feature_importances_)
-	
-	# take out features with a very low feature importance
-	ind = 0
-	low_importance = []
-	for x in informed_rf.feature_importances_:
-		if (x < .01):
-			low_importance.append(ind)
-		ind += 1
-
-	data = filter_features(data, low_importance)
-	vis_all_feat_corrs(data, classif)
-		
-	'''
-	base_rf = run_default_rf(data, classif)[0]
-	#visualize_feature_importances(base_rf)
-	IMPORTANCE_THRESH_LIST = [.0005, .001, .002, .005, .008, .1, .12, .15, .18, .2]
-	
-	# find best threshold and use it to filter features in the data set	 
-	IMPORTANCE_THRESH = .008 #test_importance_thresholds(IMPORTANCE_THRESH_LIST, base_rf, data)
-	filtered_data = filter_features(base_rf, data, IMPORTANCE_THRESH)
-	
-	# create full data frame with filtered features
-	filtered_df = pd.DataFrame(filtered_data)
-	filtered_df.loc[:, "classification"] = pd.Series(classif)
-	vis_output_distribution(filtered_df)
-	
-
-	#filtered_rf = run_default_rf(filtered_data, classif)[0]
-	#visualize_feature_importances(filtered_rf)
-	#view_correlation_map(filtered_df)
-	'''
