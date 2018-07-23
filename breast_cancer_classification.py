@@ -43,6 +43,7 @@ def run_default_rf(data, target, forest_size=25, verbose=True):
 		print("Accuracy: {0}%".format(str(accuracy)))
 	return (rf, accuracy)
 
+
 def run_default_NB(data, target):
 	"""Method for running the naive bayes classifier on the breast cancer
 	dataset. The accuracy of the test is displayed in the terminal and
@@ -108,6 +109,7 @@ def filter_features(data, bad_indices):
 
 	# eliminate above column indices from the data and return new set
 	filtered_data = np.delete(data, bad_indices, axis=1)
+
 	return filtered_data
 
 
@@ -186,9 +188,12 @@ def vis_output_distribution(df):
 	than 0s.
 	"""
 
-	classes = df.loc[:, "classification"]
-	classes.value_counts().plot(kind='bar')
-	plt.show()
+	# look at the last column on data frame (the classification value column)
+	df.iloc[:, -1].value_counts().plot(kind='bar')
+	plt.title("Output Distribution: Breast Cancer DS")
+	plt.xlabel("Classification")
+	plt.ylabel("Frequency")
+	plt.show()	
 
 
 def vis_feature_corr(data, ind_1, ind_2, class_):
@@ -282,14 +287,20 @@ def gen_polynomial_feats(data, degree=2):
 
 if __name__ == "__main__":
 	"""Run all code within this main body"""
+	
+
 
 	# load in data set in form of (data, target)
 	data, classif = load_breast_cancer(return_X_y=True)
+	print(data.shape)
+	class_ = pd.DataFrame(classif)
 	data_df = pd.DataFrame(data)
+	vis_output_distribution(class_)
+
 	
 	# must check data for nulls and bad data types
 	check_null(data_df)
-	
+	'''
 	# view correlation of all the features in the dataset 
 	vis_correlation_map(data_df)
 	
@@ -319,3 +330,4 @@ if __name__ == "__main__":
 	bad_indices = np.argwhere(feat_imp < .015)
 	data = filter_features(data, bad_indices)
 	run_default_rf(data, classif, forest_size=100)	
+	'''
