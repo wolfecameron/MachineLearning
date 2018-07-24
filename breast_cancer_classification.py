@@ -282,6 +282,22 @@ def gen_polynomial_feats(data, degree=2):
 	data = pf.fit_transform(data)
 	
 	return data
+
+def visualize_pairplot(data, class_):
+	"""This method is used to create a pairplot of all of the
+	features inside of a given data frame. This is most useful
+	to visualize a bunch of features and their characteristics
+	in an aggegated style of visualization
+
+	Parameters:
+	The data array and the target classifications of each observation
+	"""
+
+	
+	data_df = pd.DataFrame(data)
+	sns.pairplot(data_df, markers=class_)
+	plt.show()
+
 	
 
 
@@ -300,7 +316,7 @@ if __name__ == "__main__":
 	
 	# must check data for nulls and bad data types
 	check_null(data_df)
-	'''
+	
 	# view correlation of all the features in the dataset 
 	vis_correlation_map(data_df)
 	
@@ -309,8 +325,22 @@ if __name__ == "__main__":
 	
 	#vis_all_feat(data, classif)
 	data = filter_features(data, [1, 2, 6, 7, 9, 10, 14, 15])
-	print(data.shape)
+
+	informed_rf = run_default_rf(data, classif)[0]
+	print(informed_rf.feature_importances_)
+	feat_np = np.array(informed_rf.feature_importances_, copy=True)
+	mean_imp = np.mean(feat_np)
+	bad_indices = []
+	for ind in range(len(informed_rf.feature_importances_)):
+		if(feat_np[ind] < mean_imp/2.0):
+			bad_indices.append(ind)
+	data = filter_features(data, bad_indices)
 	
+	print(data.shape)
+	visualize_pairplot(data, classif)
+	
+
+	'''
 	data = gen_polynomial_feats(data)
 	
 	informed_rf = run_default_rf(data, classif)[0]
