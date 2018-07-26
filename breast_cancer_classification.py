@@ -153,11 +153,9 @@ def test_importance_thresholds(imp_thresh_list, rf, data, display=True):
 	
 	# display graph of the average accuracies for each of the threshold values
 	if(display):
-		plt.bar(np.arange(len(accuracies)), accuracies, align='center')
-		plt.xticks(np.arange(len(accuracies)), imp_thresh_list)
-		plt.ylabel("Average Accuracy")
-		plt.xlabel("Importance Threshold")
-		plt.show() 
+		print("Importance Threshold -> Accuracy")
+		for acc, imp in zip(accuracies, imp_thresh_list):
+			print("{0} -> {1}".format(str(imp), str(acc)))
 	
 	# get the importance threshold that corresponds to the highest average accuracy
 	best_ind = accuracies.index(max(accuracies))
@@ -295,7 +293,9 @@ def visualize_pairplot(data, class_):
 
 	
 	data_df = pd.DataFrame(data)
-	sns.pairplot(data_df, markers=class_)
+	# add classification so the plot can be colored by it
+	data_df.loc[:, "classif"] = pd.Series(class_)
+	sns.pairplot(data_df, hue='classif')
 	plt.show()
 
 	
@@ -326,19 +326,22 @@ if __name__ == "__main__":
 	#vis_all_feat(data, classif)
 	data = filter_features(data, [1, 2, 6, 7, 9, 10, 14, 15])
 
+	# run RF with filtered data
 	informed_rf = run_default_rf(data, classif)[0]
 	print(informed_rf.feature_importances_)
+
+	test_importance_thresholds([.001, .003, .005, .008, .01, .13, .15, ,.2, .3], )
+	'''
 	feat_np = np.array(informed_rf.feature_importances_, copy=True)
 	mean_imp = np.mean(feat_np)
 	bad_indices = []
 	for ind in range(len(informed_rf.feature_importances_)):
-		if(feat_np[ind] < mean_imp/2.0):
+		if(feat_np[ind] < mean_imp/1.0):
 			bad_indices.append(ind)
 	data = filter_features(data, bad_indices)
 	
-	print(data.shape)
 	visualize_pairplot(data, classif)
-	
+	'''
 
 	'''
 	data = gen_polynomial_feats(data)
