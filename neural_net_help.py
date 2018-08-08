@@ -3,7 +3,7 @@ the neural network
 """
 
 import numpy as np
-
+from scipy.special import expit
 
 def create_weight_mat(size):
 	"""Creates a matrix with randomly initialized values between
@@ -13,6 +13,12 @@ def create_weight_mat(size):
 	weight_mat -= .5
 
 	return weight_mat
+
+def activate(values):
+	"""applies a sigmoid activtion function to a given list of values
+	and returns the values"""
+	
+	return expit(values)
 
 
 if __name__ == '__main__':
