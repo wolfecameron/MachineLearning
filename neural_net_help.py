@@ -20,6 +20,14 @@ def activate(values):
 	
 	return expit(values)
 
+def sig_deriv(values):
+	"""Helper method to pass values through the derivative of the sigmoid
+	function - used for backpropogation of neural network
+	
+	*Assumed that values has already been passed through sigmoid activation
+	"""
+	
+	return values*(1 - values)
 
 if __name__ == '__main__':
 	"""Use for simple tests"""
@@ -29,4 +37,5 @@ if __name__ == '__main__':
 	
 	mat_1 = create_weight_mat((3,4))
 	print(mat_1)
+
 
