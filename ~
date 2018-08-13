@@ -88,16 +88,16 @@ class Neural_Network:
 				self.weights[layer - 1] += updates
 			else:
 				# must eliminate bias from the error
-				error = delta.dot(self.weights[layer])[:, 1:]
-				delta = error*sig_deriv(self.weights[layer][:, 1:])
-				print("DELTA: " + str(delta.shape))
-				# find updates to weights and add values to weight matrix
-				print("VALUES" + str(np.vstack([np.ones((1,1)), self.values[layer-2]]).shape))
+				error = delta.dot(self.weights[layer])
 				
-				updates = np.vstack([np.ones((1,1)), self.values[layer -2]]).dot(delta)
-				print("UPDATES: "+  str(updates.shape))
-				self.weights[layer - 1] += updates			
-				print("MADE IT")
+					
+				print(error.shape)
+				print(self.values[layer - 1].shape)
+				
+				delta = error*sig_deriv(self.values[layer - 1])
+				print("DELTA: " + str(delta.shape))
+				self.weights[layer - 1] += self.values[layer - 2].dot(delta)				
+
 
 
 if  __name__ == '__main__':
