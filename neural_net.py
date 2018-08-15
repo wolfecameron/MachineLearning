@@ -78,27 +78,22 @@ class Neural_Network:
 		
 		# must track delta as you backpropogate
 		delta = None
-		for layer in reversed(range(self.layers)):
+		for layer in reversed(range(1, self.layers)):
 			if(layer == self.layers - 1):
 				error = expected - outputs
 				delta = error*sig_deriv(outputs)
 				
 				# add changes based on deltas into the weight matrix	
 				updates = np.vstack([np.ones((1,1)), self.values[layer - 2]]).dot(delta).T
-				self.weights[layer - 1] += updates
+				self.weights[layer - 1] += alpha*updates
 			else:
 				# must eliminate bias from the error
-				error = delta.dot(self.weights[layer])[:, 1:]
-				delta = error*sig_deriv(self.weights[layer][:, 1:])
-				print("DELTA: " + str(delta.shape))
-				# find updates to weights and add values to weight matrix
-				print("VALUES" + str(np.vstack([np.ones((1,1)), self.values[layer-2]]).shape))
+				error = delta.dot(self.weights[layer][:, 1:])
+				delta = error*sig_deriv(self.values[layer].T)
+				# find updates to weights and add values to weight matrix	
+				updates = np.vstack([np.ones((1,1)),self.values[layer - 1]]).dot(delta).T
+				self.weights[layer - 1] += alpha*updates			
 				
-				updates = np.vstack([np.ones((1,1)), self.values[layer -2]]).dot(delta)
-				print("UPDATES: "+  str(updates.shape))
-				self.weights[layer - 1] += updates			
-				print("MADE IT")
-
 
 if  __name__ == '__main__':
 	"""Used for simple testing"""
@@ -106,10 +101,15 @@ if  __name__ == '__main__':
 	nn = Neural_Network([2,2,1])
 	inputs = [[1,1],[0,1],[1,0],[0,0]]
 	expected = [0, 1, 1, 0]
-	for x in range(4000):
+	for x in range(10000):
 		ins = inputs[x % 4]
-		exp = expected[x% 4]
+		exp = expected[x % 4]
 		output = nn.forward_prop(ins)
 		nn.backward_prop(ins, output, np.array(exp))
 	
 	
+	print(nn.forward_prop([0,0]))
+	print(nn.forward_prop([1,0]))
+	print(nn.forward_prop([0,1]))
+	print(nn.forward_prop([1,1]))
+		
