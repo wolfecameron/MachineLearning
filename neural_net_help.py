@@ -3,6 +3,7 @@ the neural network
 """
 
 import numpy as np
+import matplotlib.pyplot as plt
 from scipy.special import expit
 
 def create_weight_mat(size):
@@ -28,6 +29,17 @@ def sig_deriv(values):
 	"""
 	
 	return values*(1 - values)
+
+def visualize_cost(error_vals):
+	"""Method for visualizing the cost function that the neural network
+	is optimizing to ensure that gradient descent is working properly
+	"""
+	
+	plt.title("Cost Function Visualization")
+	plt.ylabel("Cost")
+	plt.xlabel("Iteration")
+	plt.plot(error_vals)
+	plt.show()
 
 if __name__ == '__main__':
 	"""Use for simple tests"""
