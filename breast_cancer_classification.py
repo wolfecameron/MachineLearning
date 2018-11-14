@@ -14,6 +14,7 @@ from sklearn.model_selection import train_test_split
 from sklearn.naive_bayes import BernoulliNB
 from sklearn.model_selection import StratifiedKFold
 from sklearn.preprocessing import PolynomialFeatures
+from sklearn.metrics import classification_report
 import matplotlib.pyplot as plt
 import seaborn as sns
 
@@ -40,6 +41,7 @@ def run_default_rf(data, target, forest_size=25, verbose=True):
 	
 	# print accuracy and return the fitted baseline model
 	if(verbose):
+		print("\n\nModel Results with {0} Estimators\n".format(str(forest_size)))
 		print("Accuracy: {0}%".format(str(accuracy)))
 	return (rf, accuracy)
 
@@ -128,7 +130,7 @@ def check_null(df):
 	print(df.dtypes)
 
 
-def test_importance_thresholds(imp_thresh_list, rf, data, display=True):
+def test_importance_thresholds(imp_thresh_list, rf, data, classif, display=True):
 	"""This method tests a list of importance thresholds and determines
 	which value performs the best for filtering data. 
 	
@@ -142,14 +144,11 @@ def test_importance_thresholds(imp_thresh_list, rf, data, display=True):
 	# forest a certain number of times to get an average accuracy
 	accuracies = []
 	for imp in imp_thresh_list:
-		new_data = filter_features(rf, data, imp)
-		avg_accuracy = 0.0
-		# run rf several time to obtain an average accuract value
-		for x in range(iterations):
-			acc_tmp = run_default_rf(new_data, classif, verbose=False)[1]
-			avg_accuracy += acc_tmp
-		avg_accuracy /= iterations
-		accuracies.append(avg_accuracy)
+		bad_indices = np.where(rf.feature_importances_ <= imp)
+		new_data = filter_features(data, bad_indices)
+		accuracy = run_default_rf(new_data, classif, verbose=False)[1]
+		# accuracy is determined from oob score so this is cross validated
+		accuracies.append(accuracy)
 	
 	# display graph of the average accuracies for each of the threshold values
 	if(display):
@@ -298,6 +297,42 @@ def visualize_pairplot(data, class_):
 	sns.pairplot(data_df, hue='classif')
 	plt.show()
 
+def test_rf_sizes(size_list, data, classif, verbose=True):
+	"""This method tests all of the sizes of random forest in the size_list
+	parameter and returns the random forest that has the highest accuracy
+	out of each of them. The method also prints out the results for all sizes
+	if verbose is set to true
+	"""
+
+	# store a the most accurate random forest for each of the sizes
+	best_rf = None
+	
+	# create a random forest for each size and see if it is better than the last
+	for s in size_list:
+		rf, acc = run_default_rf(data, classif, forest_size=s, verbose=verbose)
+		if(best_rf == None or best_rf.oob_score_ < rf.oob_score_):
+				best_rf = rf
+
+	return best_rf
+
+def eval_precision_recall(forest_size, data, classif):
+	"""This method takes parameters of a random forest and testing data
+	and uses this to produce a precision and recall score for the
+	random forest"""
+
+	rf = RandomForestClassifier(n_estimators=forest_size, n_jobs=-1)
+	x_train, x_test, y_train, y_test = train_test_split(data, classif)
+	rf.fit(x_train, y_train)
+	result = rf.predict(x_test)
+
+	prec_rec = classification_report(result, y_test)
+	print(prec_rec)
+
+
+
+
+
+
 	
 
 
@@ -311,14 +346,14 @@ if __name__ == "__main__":
 	print(data.shape)
 	class_ = pd.DataFrame(classif)
 	data_df = pd.DataFrame(data)
-	vis_output_distribution(class_)
+	#vis_output_distribution(class_)
 
 	
 	# must check data for nulls and bad data types
-	check_null(data_df)
+	#check_null(data_df)
 	
 	# view correlation of all the features in the dataset 
-	vis_correlation_map(data_df)
+	#vis_correlation_map(data_df)
 	
 	# filter strongly correlated features - can see which ones in correlation map
 	data = filter_features(data, [2, 3, 20, 22, 23, 12, 13])
@@ -330,7 +365,13 @@ if __name__ == "__main__":
 	informed_rf = run_default_rf(data, classif)[0]
 	print(informed_rf.feature_importances_)
 
-	test_importance_thresholds([.001, .003, .005, .008, .01, .13, .15, ,.2, .3], )
+	imp_thresh = test_importance_thresholds([.001, .003, .005, .008, .01, .13, .15], informed_rf, data, classif)
+	bad_indices = np.where(informed_rf.feature_importances_ <= imp_thresh)
+	data = filter_features(data, bad_indices)
+	print("\n\n")
+	best_rf = test_rf_sizes([25, 50, 75, 100, 125, 150], data, classif)
+	eval_precision_recall(125, data, classif)
+
 	'''
 	feat_np = np.array(informed_rf.feature_importances_, copy=True)
 	mean_imp = np.mean(feat_np)
