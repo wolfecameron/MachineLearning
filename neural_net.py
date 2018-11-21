@@ -70,7 +70,7 @@ class Neural_Network:
 		
 		return curr_vals
 
-	def backward_prop(self, outputs, expected, alpha=.01):
+	def backward_prop(self, outputs, expected, alpha=.0001, grad_check=False, inputs=None, epsilon=.0001):
 		"""Backward propogates the neural network to update the weights
 		based on a current training example given to the network
 
@@ -79,29 +79,72 @@ class Neural_Network:
 		outputs -- the actual outputs of the neural network
 		expected -- the expected outputs of the neural network
 		NOTE: expected and outputs should both be (N X 1)
+		
+		a list of the numpy arrays containing the gradient for each matrix is
+		returned, empty if grad_check is false
 		"""
 		
 		# must track delta as you backpropogate
 		delta = None
 		for layer in reversed(range(1, self.layers)):
+			gradients = []
 			# backprop for output layer
 			if(layer == self.layers - 1):
 				error = expected - outputs
 				delta = np.multiply(error, sig_deriv(outputs))
-				
+			
 				# add changes based on deltas into the weight matrix	
 				updates = np.vstack([np.ones((1,1)), self.values[layer - 1]]).dot(delta.T).T
 				self.weights[layer - 1] += np.multiply(alpha, updates)
+				
+				# if gradient is being checked, add to the current list
+				if grad_check:
+					grad_arr = np.zeros(self.weights[layer - 1].shape)
+					for r in range(self.weights[layer - 1].shape[0]):
+						for c in range(self.weights[layer - 1].shape[1]):
+							self.weights[layer - 1][r, c] += epsilon
+							upper = expected - self.forward_prop(inputs)
+							self.weights[layer - 1][r, c] -= 2*epsilon
+							lower = expected - self.forward_prop(inputs)
+							self.weights[layer - 1][r, c] += epsilon
+							grad = (upper - lower)/2*epsilon						
+							grad_arr[r, c] = grad
+					print("\n\nBACKPROP DELTA:\n")
+					print(np.multiply(alpha, updates))
+					print("\n\nGRADIENT CHECK\n")
+					print(grad_arr)
+					input()
+				
 			
 			# backprop for all hidden layers
 			else:
 				# must eliminate bias from the error
 				error = delta.dot(self.weights[layer][:, 1:]) # 1 X 2 - which way is better
 				delta = np.multiply(error, sig_deriv(self.values[layer]).T) # 2 X 1 - multiply upper gradient by gradient at current node
+				
 				# find updates to weights and add values to weight matrix	
 				updates = np.vstack([np.ones((1,1)),self.values[layer - 1]]).dot(delta).T
 				self.weights[layer - 1] += np.multiply(alpha, updates)			
 				
+				# determine the gradient check matrix and check to see if they are the same
+				if grad_check:
+					grad_arr = np.zeros(self.weights[layer - 1].shape)
+					for r in range(self.weights[layer - 1].shape[0]):
+						for c in range(self.weights[layer - 1].shape[1]):
+							self.weights[layer - 1][r, c] += epsilon
+							upper = expected - self.forward_prop(inputs)
+							self.weights[layer - 1][r, c] -= 2*epsilon
+							lower = expected - self.forward_prop(inputs)
+							self.weights[layer - 1][r, c] += epsilon
+							grad = (upper - lower)/2*epsilon						
+							grad_arr[r, c] = grad
+					print("\n\nBACKPROP DELTA:\n")
+					print(np.multiply(alpha, updates))
+					print("\n\nGRADIENT CHECK\n")
+					print(grad_arr)
+					input()
+
+		
 
 if  __name__ == '__main__':
 	"""Used for simple testing"""
@@ -116,7 +159,7 @@ if  __name__ == '__main__':
 		for ins, exp in zip(inputs, expected):
 			output = nn.forward_prop(ins)
 			results.append(output)
-			nn.backward_prop(output, np.array(exp).T, alpha=.05)
+			nn.backward_prop(output, np.array(exp).T, alpha=.001, grad_check=True, inputs=ins)
 		result_np = np.array(results, copy=True)
 		loss = np.sum(np.square(np.subtract(expected_np, result_np)))
 		loss_func_vals.append(loss)	

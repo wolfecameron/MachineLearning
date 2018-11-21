@@ -2,6 +2,10 @@
 the neural network
 """
 
+# must include this to avoid backend error message with mac
+import matplotlib
+matplotlib.use("TkAgg")
+
 import numpy as np
 import matplotlib.pyplot as plt
 from scipy.special import expit
