@@ -13,7 +13,7 @@ class Neural_Network:
 		"""Constructor for neural net object, takes in a list
 		of integers where each integer in the list represents
 		the number of hiddens nodes in a certain layer (including
-		input/output layers
+		input/output layers)
 		
 		Parameters:
 		layer_sizes-- list of number of nodes present in each layer
@@ -54,6 +54,7 @@ class Neural_Network:
 	
 		# clear intermediate values so the list can be repopulated
 		self.values = []
+		self.act_values = []
 
 		#transform input into a numpy array that can be dot multiplied
 		inputs = np.array([inputs])
@@ -70,11 +71,11 @@ class Neural_Network:
 			# must store both unactivated and activated values for backpropogation
 			self.values.append(vals)
 			self.act_values.append(activate(vals))
-			curr_vals = vals
+			curr_vals = activate(vals)
 		
 		return curr_vals
 
-	def backward_prop(self, expected, alpha=.0001, grad_check=False, inputs=None):
+	def backward_prop(self, output, expected, alpha=.01, grad_check=False, inputs=None):
 		"""Backward propogates the neural network to update the weights
 		based on a current training example given to the network
 
@@ -91,16 +92,15 @@ class Neural_Network:
 		# must track delta as you backpropogate
 		delta = None
 		for layer in reversed(range(1, self.layers)):
-			gradients = []
 			# backprop for output layer
 			if(layer == self.layers - 1):
-
-				error = expected - self.act_values[layer]
-				delta = np.multiply(error, sig_deriv(self.values[layer]))
+				error = expected - output
+				delta = np.multiply(error, sig_deriv(output))
 			
 				# add changes based on deltas into the weight matrix
-				updates = np.vstack([np.ones((1,1)), self.act_values[layer - 1]]).dot(delta.T).T
+				updates = np.vstack([np.ones((1,1)), self.act_values[layer - 1]]).dot(delta).T
 				self.weights[layer - 1] += np.multiply(alpha, updates)
+				
 				
 				# if gradient is being checked, add to the current list
 				if grad_check:
@@ -119,12 +119,12 @@ class Neural_Network:
 			else:
 				# must eliminate bias from the error
 				error = delta.dot(self.weights[layer][:, 1:]) # 1 X 2
-				delta = np.multiply(error, sig_deriv(self.values[layer]).T) # 2 X 1 - multiply upper gradient by gradient at current node
+				delta = np.multiply(error, sig_deriv(self.act_values[layer]).T) # 2 X 1 - multiply upper gradient by gradient at current node
 				
 				# find updates to weights and add values to weight matrix	
 				updates = np.vstack([np.ones((1,1)), self.act_values[layer - 1]]).dot(delta).T
 				self.weights[layer - 1] += np.multiply(alpha, updates)			
-				
+				"""	
 				# determine the gradient check matrix and check to see if they are the same
 				if grad_check:
 					grad_arr = np.zeros(self.weights[layer - 1].shape)
@@ -136,6 +136,7 @@ class Neural_Network:
 					print("\n\nGRADIENT CHECK\n")
 					print(grad_arr)
 					input()
+				"""
 
 	def compute_numerical_gradient(self, ins, out, layer, r, c, epsilon):
 		"""this method computes the numerical gradient of the neural network that
@@ -158,20 +159,20 @@ class Neural_Network:
 if  __name__ == '__main__':
 	"""Used for simple testing"""
 	
-	nn = Neural_Network([2,3,1])
+	nn = Neural_Network([2,3, 3, 1])
 	inputs = [[1,1],[0,1],[1,0],[0,0]]
 	expected = [0, 1, 1, 0]
 	expected_np = np.array(expected, copy=True)
 	loss_func_vals = []
-	for x in range(10000):
+	for x in range(100000):
 		results = []
+		cost = 0.0
 		for ins, exp in zip(inputs, expected):
 			output = nn.forward_prop(ins)
 			results.append(output)
-			nn.backward_prop(np.array(exp).T, alpha=.001, grad_check=False, inputs=ins)
-		result_np = np.array(results, copy=True)
-		loss = np.sum(np.square(np.subtract(expected_np, result_np)))
-		loss_func_vals.append(loss)	
+			nn.backward_prop(output, np.array(exp).T, alpha=.001, grad_check=False, inputs=ins)
+			cost += np.square(output - exp)[0, 0]
+		loss_func_vals.append(cost)	
 		
 	visualize_cost(loss_func_vals)	
 	
