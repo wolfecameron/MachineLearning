@@ -52,7 +52,7 @@ class FFNN:
 
         loss = -((1 - target)*np.log(1 - output)
                 + target*np.log(output))
-        self.loss_grad = (target - output)
+        self.loss_grad = output - target
         return float(loss)
         
 
@@ -67,11 +67,7 @@ class FFNN:
 	
         # clear intermediate values so the list can be repopulated
         # these values must be tracked for use in backward pass
-        self.z_vals = []
         self.a_vals = []
-
-        # transform into numpy array
-        self.z_vals.append(inputs)
 
         # forward activate the inputs through all of the weight matrices
         curr_vals = inputs
@@ -79,41 +75,41 @@ class FFNN:
             self.a_vals.append(curr_vals)
             
             # must stack a bias unit on top
-            bias = np.ones((curr_vals.shape[0], 1))
+            bias = np.ones((1, 1))
             data_in = np.hstack((curr_vals, bias))
             z_val = np.dot(data_in, weight_mat)
-            a_val = relu(z_val)
-            self.z_vals.append(z_val)
+            a_val = sigmoid(z_val)
             curr_vals = a_val
-        return sigmoid(curr_vals)
+        return curr_vals
 
-    def backward(self, outputs, alpha:float=.1):
-        error = self.loss_grad*d_dsigmoid(outputs)
+    def backward(self, outputs, alpha:float=1.0):
+        error = np.multiply(self.loss_grad, d_dsigmoid(outputs))
         for ind in reversed(range(1, self.layers)):
             weights = self.weights[ind - 1]
             prev_acts = self.a_vals[ind - 1]
-            input_vec = np.vstack((np.transpose(prev_acts), np.ones((1, 1))))
+            input_vec = np.vstack((
+                    np.transpose(prev_acts),
+                    np.ones((1, 1))))
             weight_grad = np.dot(input_vec, error)
-            self.weights[ind - 1] += alpha*weight_grad # update weights
+            self.weights[ind - 1] -= alpha*weight_grad # update weights
             if ind > 1:
-                prev_z = self.z_vals[ind - 1]
-                act_grad = np.dot(error, np.transpose(weights))
-                act_grad = act_grad[:, :-1] # remove bias
-                error = act_grad*d_drelu(prev_z)
+                act_grad = np.dot(weights, np.transpose(error))
+                act_grad = np.transpose(act_grad[:-1, :]) # remove bias
+                error = np.multiply(act_grad, d_dsigmoid(prev_acts))
 
 if  __name__ == '__main__':
     """Used for simple testing"""
 
     # train the neural net on xor	
-    nn = FFNN([2, 8, 1])
-    inputs = np.array([[1,1],[0,1],[1,0],[0,0]])
-    expected = np.transpose(np.array([[0, 1, 1, 0]]))
+    nn = FFNN([2, 5, 5, 1])
+    inputs = np.array([[1,1],[0,1], [1,0], [0,0]])
+    expected = np.array([[0], [1], [1], [0]])
     losses = []
-    for x in range(1000):
+    for x in range(10000):
         tmp_losses = 0.
         for ind in range(inputs.shape[0]):
             data_in = inputs[ind, :][None, :]
-            target = expected[ind, :][None, :]
+            target = expected[ind][None, :]
             output = nn.forward(data_in)
             tmp_loss = nn.bce_loss(output, target)
             nn.backward(output)
@@ -121,7 +117,7 @@ if  __name__ == '__main__':
         tmp_losses /= 4
         if x % 100 == 0:
             print(f'Loss: {tmp_losses}')
-    print(f'0 --> {nn.forward(inputs[0][None, :])}')
+    print(f'1 --> {nn.forward(inputs[0][None, :])}')
     print(f'1 --> {nn.forward(inputs[1][None, :])}')
     print(f'1 --> {nn.forward(inputs[2][None, :])}')
     print(f'0 --> {nn.forward(inputs[3][None, :])}')

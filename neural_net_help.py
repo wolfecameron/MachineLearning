@@ -11,7 +11,7 @@ def create_weight_mat(size):
     """creates a weight matrix with kaiming initialization"""
 
     std = np.sqrt(2/size[0]) # fan in
-    weights = np.random.normal(0, 1.0, size=size)
+    weights = np.random.normal(0, .4, size=size)
     return weights
 
 def relu(values):
@@ -27,9 +27,9 @@ def d_drelu(grad):
 def sigmoid(values):
     return 1./(1. + np.exp(-values))
 
-def d_dsigmoid(grad):
+def d_dsigmoid(act):
     """assumed that the input is activation values not pre-activation"""
-    return grad*(1. - grad)
+    return act*(1. - act)
 
 def visualize_cost(error_vals):
     """Method for visualizing the cost function that the neural network
